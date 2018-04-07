@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<style>
+canvas {
+    border:1px solid #d3d3d3;
+    background-color: #f1f1f1;
+}
+</style>
+</head>
+<body onload="startGame()">
+<p id="debug"></p>
+<script>
+var shipSize = 30;
+var canvasW = 960;
+var canvasH = 540;
+var sprites = [];
+var reload = 10;
+var enemyRate = 100;
+var enemyRate2 = 100;
+var ctr = 0;
+var date = new Date();
+var startTime;
+
+
+function startGame() {
+    myGameArea.start();
+	sprites.push(new component(new keyboardMove(), canvasW/2, canvasH - 30, new imageSkin()));
+	sprites.push(new component(new moveRight(), 0, Math.floor(Math.random()*500 + 100), new imageSkin()));
+	startTime = d.getTime();
+}
+
+var myGameArea = {
+	canvas : document.createElement("canvas"),
+    start : function() {
+        this.canvas.width = canvasW;
+        this.canvas.height = canvasH;
+        this.context = this.canvas.getContext("2d");
+        document.body.insertBefore(this.canvas, document.body.childNodes[0]);
+        this.interval = setInterval(updateGameArea, 20);
+        window.addEventListener('keydown', function (e) {
+            myGameArea.key = e.keyCode;
+        })
+        window.addEventListener('keyup', function (e) {
+            myGameArea.key = false;
+        })
+    }, 
+    clear : function(){
+        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+}
+
+function updateGameArea() {
+	
+	myGameArea.clear();
+	
+	if (enemyRate<= 0){
+		sprites.push(new component(new moveRight(), 0, Math.floor((Math.random()*500) + 50), new imageSkin()));
+		enemyRate = enemyRate2;
+	}
+	for(var i = 0; i < sprites.length; i++){
+		sprites[i].update();
+	}
+	enemyRate2 -= (d.getTime() - startTime)/1000; 
+	enemyRate--;
+}
+function keyboardMove(){
+	this.ctr = 0;
+	this.speedX = 0;
+	this.speedY = 0;
+	this.update = function(sprite) {
+		this.speedX = 0;
+		this.speedY = 0; 
+	
+		if (myGameArea.key && myGameArea.key == 37) {
+			this.speedX = -5; 
+		}
+		if (myGameArea.key && myGameArea.key == 39) {
+			this.speedX = 5; 
+		}		
+		//up arrow
+		if (myGameArea.key && myGameArea.key == 38 && this.ctr <= 0) {
+			this.ctr = reload;
+			sprites.push(new component(new moveUp(), sprite.x+10, sprite.y+40, new imageSkin()));
+			document.getElementById("debug").innerHTML = sprites;
+		}
+		this.ctr--;
+	}
+}
+
+function moveUp(){
+	this.speedX = 0;
+	this.speedY = -5;
+	this.update = function(sprite) {
+		if(sprite.y < 0){
+			sprites.splice(sprites.indexOf(sprite),1);
+		}
+	}
+}
+
+function moveRight(){
+	this.speedX = 5;
+	this.speedY = 0;
+	this.update = function(sprite) {
+		if(sprite.x > canvasW){
+			sprites.splice(sprites.indexOf(sprite),1);
+		}
+	}
+}
+function imageSkin(){
+	this.width = 30;
+	this.height = 30;
+	this.image = new Image();
+    this.image.src = "redArrow.jpg";//src
+	this.draw = function (ctx, x, y) {
+		ctx.drawImage(this.image, x, y, this.width, this.height);
+	}
+}
+
+function shapeSkin(){
+	this.width = 10;
+	this.height = 10;
+	this.draw = function (ctx, x, y) {
+		ctx.fillStyle = color;
+        ctx.fillRect(x, y, this.width, this.height);
+	}
+}
+
+function component(move, x, y, skin) {   
+    this.move = move;
+	this.skin = skin;
+	this.x = x;
+    this.y = y;  
+
+    this.update = function() {
+		this.move.update(this);
+		this.x += move.speedX;
+        this.y += move.speedY;
+	
+		this.skin.draw(myGameArea.context, this.x, this.y);     
+    }
+    
+}
+</script>
+</body>
+</html>
