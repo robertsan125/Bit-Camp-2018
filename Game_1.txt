@@ -16,13 +16,15 @@ var shipSize = 30;
 var canvasW = 540;
 var canvasH = 700;
 var sprites = [];
+var projectiles = [];
 var reload = 10;
 var enemyRate = 100;
-
+var stop = false;
+var myGamePiece;
 
 function startGame() {
     myGameArea.start();
-	sprites.push(new component(new keyboardMove(), canvasW/2, canvasH - 30, new imageSkin()));
+	myGamePiece = new component(new keyboardMove(), canvasW/2, canvasH - 30, new imageSkin());
 }
 
 var myGameArea = {
@@ -42,21 +44,45 @@ var myGameArea = {
     }, 
     clear : function(){
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    },
+	stop : function() {
+        clearInterval(this.interval);
     }
 }
+var enemyTimer = 0;
+var loopCtr = 0;
+
 
 function updateGameArea() {
-	
 	myGameArea.clear();
-	if (enemyRate<= 0){
-		sprites.push(new component(new moveDown(), (Math.random()*500), 0, new imageSkin()));
-		enemyRate = 100;
+	myGamePiece.update();
+	if (enemyTimer<= 0){
+		sprites.push(new component(new moveDown(), (Math.random()*500), 0, new imageSkin(), "enemy"));
+		enemyTimer = enemyRate-(loopCtr/10);
+		if(enemyTimer < 30){
+			enemyTimer = 30;
+		}
+	}
+	for (var a = 0; a < sprites.length; a++){
+		for(var b = 0; b < projectiles.length; b++){
+			if (sprites[a].crashWith(projectiles[b])){
+				//myGameArea.stop();
+				projectiles.splice(b,1);
+				sprites.splice(a,1);
+			}
+		}
 	}
 	for(var i = 0; i < sprites.length; i++){
 		sprites[i].update();
 	}
-	enemyRate--;
+	for(var j = 0; j < projectiles.length; j++){
+		projectiles[j].update();
+	}
+	enemyTimer--;
+	loopCtr++;
 }
+
+
 function keyboardMove(){
 	this.ctr = 0;
 	this.speedX = 0;
@@ -74,7 +100,7 @@ function keyboardMove(){
 		//up arrow
 		if (myGameArea.key && myGameArea.key == 38 && this.ctr <= 0) {
 			this.ctr = reload;
-			sprites.push(new component(new moveUp(), sprite.x+10, sprite.y+40, new imageSkin()));
+			projectiles.push(new component(new moveUp(), sprite.x+10, sprite.y-40, new imageSkin(), "projectile"));
 			document.getElementById("debug").innerHTML = sprites;
 		}
 		this.ctr--;
@@ -84,9 +110,10 @@ function keyboardMove(){
 function moveUp(){
 	this.speedX = 0;
 	this.speedY = -5;
-	this.update = function(sprite) {
-		if(sprite.y < 0){
-			sprites.splice(sprites.indexOf(sprite),1);
+	this.update = function(projectile) {
+		//should be 0
+		if(projectile.y < 0 || stop == true){
+			projectiles.splice(projectiles.indexOf(projectile),1);
 		}
 	}
 }
@@ -95,7 +122,7 @@ function moveDown(){
 	this.speedX = 0;
 	this.speedY = 5;
 	this.update = function(sprite) {
-		if(sprite.y >= canvasH){
+		if(sprite.y >= canvasH || stop == true){
 			sprites.splice(sprites.indexOf(sprite),1);
 		}
 	}
@@ -119,11 +146,12 @@ function shapeSkin(){
 	}
 }
 
-function component(move, x, y, skin) {   
+function component(move, x, y, skin, type) {   
     this.move = move;
 	this.skin = skin;
 	this.x = x;
     this.y = y;  
+	this.type = type;
 
     this.update = function() {
 		this.move.update(this);
@@ -132,7 +160,21 @@ function component(move, x, y, skin) {
 	
 		this.skin.draw(myGameArea.context, this.x, this.y);     
     }
-    
+	 this.crashWith = function(otherobj) {
+        var myleft = this.x;
+        var myright = this.x + (this.skin.width);
+        var mytop = this.y;
+        var mybottom = this.y + (this.skin.height);
+        var otherleft = otherobj.x;
+        var otherright = otherobj.x + (otherobj.skin.width);
+        var othertop = otherobj.y;
+        var otherbottom = otherobj.y + (otherobj.skin.height);
+        var crash = true;
+        if ((mybottom < othertop) || (mytop > otherbottom) || (myright < otherleft) || (myleft > otherright)) {
+            crash = false;
+        }
+        return crash;
+    }
 }
 </script>
 </body>
